@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         return formatter.format(new Date(milliSeconds));
     }
 
-    private void saveDataToFirebase() {
+     private void saveDataToFirebase() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             Map<String, Object> smsData = new HashMap<>();
             for (SMSMessage sms : smsList) {
                 // Encrypt specific fields of the SMS data
-//                String encryptedTimestamp = AESEncryption.encrypt(String.valueOf(sms.getTimestamp()));  // Encrypt the timestamp
+                //   String encryptedTimestamp = AESEncryption.encrypt(String.valueOf(sms.getTimestamp()));  // Encrypt the timestamp
                 String encryptedDate = AESEncryption.encrypt(sms.getTime());  // Encrypt the date
                 String encryptedAmount = AESEncryption.encrypt(sms.getAmount());  // Encrypt the transaction amount
                 String encryptedType = AESEncryption.encrypt(sms.getType());

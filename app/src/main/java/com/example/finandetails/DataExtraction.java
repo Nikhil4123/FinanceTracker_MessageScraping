@@ -16,24 +16,36 @@ public class DataExtraction {
 
         ArrayList<SMSMessage> detailsList = new ArrayList<>();
 
-        // Patterns for messages
-        String debitRegex = "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+debited\\s+A/c(\\w+)\\s+and\\s+credited\\s+to\\s+([\\w\\s]+)\\s+via\\s+UPI\\s+Ref\\s+No\\s+\\d+\\s+on\\s+(\\d{1,2}[A-Za-z]{3}\\d{2})";
-        String creditRegex = "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+Credited\\s+to\\s+your\\s+Ac\\s+(\\w+)\\s+on\\s+(\\d{2}-\\d{2}-\\d{2})\\s+by\\s+UPI\\s+ref\\s+No\\.\\d+";
+        // List of regex patterns for debit and credit messages
+        String[] debitRegexes = {
+                "(?i)Amt\\s+Sent\\s+Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+From\\s+[\\w\\s]+A/C\\s+\\*?(\\d+)\\s+To\\s+([\\w\\s]+)\\s+On\\s+(\\d{2}-\\d{2})",
+                "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+debited\\s+A/c(\\w+)\\s+and\\s+credited\\s+to\\s+([\\w\\s]+)\\s+via\\s+UPI\\s+Ref\\s+No\\s+\\d+\\s+on\\s+(\\d{1,2}[A-Za-z]{3}\\d{2})"
+        };
 
-        // Check for debited message format
-        Pattern debitPattern = Pattern.compile(debitRegex);
-        Matcher debitMatcher = debitPattern.matcher(messageBody);
+        String[] creditRegexes = {
+                "(?i)Rs\\.\\s*(\\d+(?:\\.\\d{1,2})?)\\s+credited\\s+to\\s+a/c\\s+\\w+(\\d+)\\s+on\\s+(\\d{2}-\\d{2}-\\d{2})",
+                "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+Credited\\s+to\\s+your\\s+Ac\\s+(\\w+)\\s+on\\s+(\\d{2}-\\d{2}-\\d{2})\\s+by\\s+UPI\\s+ref\\s+No\\.\\d+"
+        };
 
-        if (debitMatcher.find()) {
-            String amount = debitMatcher.group(1);
-            String accountNumber = debitMatcher.group(2);
-            String creditedTo = debitMatcher.group(3);
-            String transactionDate = debitMatcher.group(4);
-            String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");
+        // Check for debit message formats
+        for (String debitRegex : debitRegexes) {
+            Pattern debitPattern = Pattern.compile(debitRegex);
+            Matcher debitMatcher = debitPattern.matcher(messageBody);
 
-            detailsList.add(new SMSMessage(senderId, "Debited", amount, formattedDate, dateTime, timestampMillis));
-        } else {
-            // Check for credited message format
+            if (debitMatcher.find()) {
+                String amount = debitMatcher.group(1);
+                String accountNumber = debitMatcher.group(2);
+                String creditedTo = debitMatcher.group(3);
+                String transactionDate = debitMatcher.group(4);
+                String formattedDate = convertDateFormat(transactionDate, determineDateFormat(transactionDate), "dd/MM/yyyy");
+
+                detailsList.add(new SMSMessage(senderId, "Debited", amount, formattedDate, dateTime, timestampMillis));
+                return detailsList; // Return once a match is found
+            }
+        }
+
+        // Check for credit message formats
+        for (String creditRegex : creditRegexes) {
             Pattern creditPattern = Pattern.compile(creditRegex);
             Matcher creditMatcher = creditPattern.matcher(messageBody);
 
@@ -41,15 +53,27 @@ public class DataExtraction {
                 String amount = creditMatcher.group(1);
                 String accountNumber = creditMatcher.group(2);
                 String transactionDate = creditMatcher.group(3);
-                String formattedDate = convertDateFormat(transactionDate, "dd-MM-yy", "dd/MM/yyyy");
+                String formattedDate = convertDateFormat(transactionDate, determineDateFormat(transactionDate), "dd/MM/yyyy");
 
                 detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis));
-            } else {
-                System.out.println("No matches found for either pattern.");
+                return detailsList; // Return once a match is found
             }
         }
 
+        System.out.println("No matches found for any pattern.");
         return detailsList.isEmpty() ? null : detailsList;
+    }
+
+    private static String determineDateFormat(String dateString) {
+        // Determines the date format based on the length or other attributes of the dateString
+        if (dateString.matches("\\d{2}-\\d{2}-\\d{2}")) {
+            return "dd-MM-yy";
+        } else if (dateString.matches("\\d{2}-\\d{2}")) {
+            return "dd-MM";
+        } else if (dateString.matches("\\d{1,2}[A-Za-z]{3}\\d{2}")) {
+            return "ddMMMyy";
+        }
+        return "dd/MM/yyyy"; // Default format
     }
 
     private static String convertDateFormat(String dateString, String inputFormat, String outputFormat) {
