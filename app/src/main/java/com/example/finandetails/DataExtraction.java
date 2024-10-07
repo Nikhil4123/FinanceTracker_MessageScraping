@@ -9,100 +9,44 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class DataExtraction {
-
-    public static ArrayList<SMSMessage> extractForADHDFCBK(String messageBody, String senderId, String dateTime, long timestampMillis) {
-        ArrayList<SMSMessage> detailsList = new ArrayList<>();
-
-        // Regex to extract transaction details for AD-HDFCBK
-        String regex = "Amt\\sSent\\sRs\\.(\\d+(\\.\\d{1,2})?)\\s+From\\sHDFC\\sBank\\sA/C\\s\\*(\\d{4})\\s+To\\s([A-Za-z\\s]+)\\s+On\\s(\\d{2}-\\d{2})\\s+Ref\\s(\\d+)";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(messageBody);
-
-        // Extract the details if the pattern is matched
-        if (matcher.find()) {
-            String amount = matcher.group(1); // Extracted amount (e.g., "10.00")
-            String account = matcher.group(3); // Extracted last 4 digits of account number (e.g., "1175")
-            String recipient = matcher.group(4).trim(); // Extracted recipient name (e.g., "ANIL RAMASHISH BHAGAT")
-            String transactionDate = matcher.group(5); // Extracted transaction date (e.g., "13-09")
-            String reference = matcher.group(6); // Extracted reference number (e.g., "425764873414")
-
-            // Format the date if necessary
-            String formattedDate = convertDateFormat(transactionDate, "dd-MM", "dd/MM");
-
-            // Add extracted details to SMSMessage list
-            SMSMessage smsMessage = new SMSMessage(senderId, "Sent", amount, formattedDate, dateTime, timestampMillis);
-
-            detailsList.add(smsMessage);
+    public static ArrayList<SMSMessage> extractTransactionDetails(String messageBody, String senderId, String dateTime, long timestampMillis) {
+        if (messageBody == null || senderId == null || dateTime == null) {
+            throw new IllegalArgumentException("Input parameters must not be null");
         }
 
-        return detailsList.isEmpty() ? null : detailsList;
-    }
-
-
-    public static ArrayList<SMSMessage> extractForJMBoiInd(String messageBody, String senderId, String dateTime, long timestampMillis) {
         ArrayList<SMSMessage> detailsList = new ArrayList<>();
 
-        String regex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+Credited\\s+to\\syour\\sAc\\s+\\S+\\son\\s(\\d{2}-\\d{2}-\\d{2})";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(messageBody);
+        // Patterns for messages
+        String debitRegex = "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+debited\\s+A/c(\\w+)\\s+and\\s+credited\\s+to\\s+([\\w\\s]+)\\s+via\\s+UPI\\s+Ref\\s+No\\s+\\d+\\s+on\\s+(\\d{1,2}[A-Za-z]{3}\\d{2})";
+        String creditRegex = "(?i)Rs\\.(\\d+(?:\\.\\d{1,2})?)\\s+Credited\\s+to\\s+your\\s+Ac\\s+(\\w+)\\s+on\\s+(\\d{2}-\\d{2}-\\d{2})\\s+by\\s+UPI\\s+ref\\s+No\\.\\d+";
 
-        while (matcher.find()) {
-            String amount = matcher.group(1); // Amount
-            String transactionDate = matcher.group(2); // Date in dd-MM-yy format
+        // Check for debited message format
+        Pattern debitPattern = Pattern.compile(debitRegex);
+        Matcher debitMatcher = debitPattern.matcher(messageBody);
 
-            // Convert the date format to dd/MM/yyyy
-            String formattedDate = convertDateFormat(transactionDate, "dd-MM-yy", "dd/MM/yyyy");
-
-            detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis));
-        }
-
-        return detailsList.isEmpty() ? null : detailsList;
-    }
-
-    public static ArrayList<SMSMessage> extractForVMBoiInd(String messageBody, String senderId, String dateTime, long timestampMillis) {
-        ArrayList<SMSMessage> detailsList = new ArrayList<>();
-
-        String debitedRegex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+debited.*?on\\s(\\d{2}[A-Za-z]{3}\\d{2})";
-        String creditedRegex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+credited.*?on\\s(\\d{2}[A-Za-z]{3}\\d{2})";
-
-        Pattern debitedPattern = Pattern.compile(debitedRegex);
-        Matcher debitedMatcher = debitedPattern.matcher(messageBody);
-
-        while (debitedMatcher.find()) {
-            String amount = debitedMatcher.group(1); // Amount
-            String transactionDate = debitedMatcher.group(3); // Date in ddMMMyy format
+        if (debitMatcher.find()) {
+            String amount = debitMatcher.group(1);
+            String accountNumber = debitMatcher.group(2);
+            String creditedTo = debitMatcher.group(3);
+            String transactionDate = debitMatcher.group(4);
             String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");
+
             detailsList.add(new SMSMessage(senderId, "Debited", amount, formattedDate, dateTime, timestampMillis));
-        }
+        } else {
+            // Check for credited message format
+            Pattern creditPattern = Pattern.compile(creditRegex);
+            Matcher creditMatcher = creditPattern.matcher(messageBody);
 
-        Pattern creditedPattern = Pattern.compile(creditedRegex);
-        Matcher creditedMatcher = creditedPattern.matcher(messageBody);
+            if (creditMatcher.find()) {
+                String amount = creditMatcher.group(1);
+                String accountNumber = creditMatcher.group(2);
+                String transactionDate = creditMatcher.group(3);
+                String formattedDate = convertDateFormat(transactionDate, "dd-MM-yy", "dd/MM/yyyy");
 
-        while (creditedMatcher.find()) {
-            String amount = creditedMatcher.group(1); // Amount
-            String transactionDate = creditedMatcher.group(3); // Date in ddMMMyy format
-            String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");
-            detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis));
-        }
-
-        return detailsList.isEmpty() ? null : detailsList;
-    }
-
-    public static ArrayList<SMSMessage> extractForJDBoiInd(String messageBody, String senderId, String dateTime, long timestampMillis) {
-        ArrayList<SMSMessage> detailsList = new ArrayList<>();
-
-        // Regex to extract debited and credited details
-        String regex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+(debited|credited).*?on\\s(\\d{2}[A-Za-z]{3}\\d{2})";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(messageBody);
-
-        while (matcher.find()) {
-            String amount = matcher.group(1); // Amount
-            String transactionType = matcher.group(3); // Debited or Credited
-            String transactionDate = matcher.group(4); // Date in ddMMMyy format
-            String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");
-
-            detailsList.add(new SMSMessage(senderId, transactionType.substring(0, 1).toUpperCase() + transactionType.substring(1), amount, formattedDate, dateTime, timestampMillis));
+                detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis));
+            } else {
+                System.out.println("No matches found for either pattern.");
+            }
         }
 
         return detailsList.isEmpty() ? null : detailsList;
@@ -115,12 +59,10 @@ public class DataExtraction {
             Date date = inputFormatter.parse(dateString);
             if (date != null) {
                 return outputFormatter.format(date);
-            } else {
-                return dateString; // Return original if parsing fails
             }
         } catch (ParseException e) {
             e.printStackTrace();
-            return dateString; // Return original if parsing fails
         }
+        return dateString; // Return original if parsing fails
     }
 }
