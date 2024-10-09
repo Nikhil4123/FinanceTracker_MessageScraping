@@ -10,6 +10,7 @@ import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Telephony;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -26,13 +27,16 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -97,54 +101,54 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
     private void readSms() {
         ContentResolver contentResolver = getContentResolver();
-        Cursor cursor = contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, null);
 
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                String address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
-                String body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
-                long timestampMillis = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
-                String dateTime = getDateTime(timestampMillis);
-
-                ArrayList<SMSMessage> transactionDetailsList = null;
-
-                if (isBankSender(address)) {
-                    transactionDetailsList = DataExtraction.extractTransactionDetails(body, address, dateTime, timestampMillis);
-                }
-
-                if (transactionDetailsList != null) {
-                    smsList.addAll(transactionDetailsList);
-                }
-
-            } while (cursor.moveToNext());
-        }
+        // Query all SMS messages in descending order of date
+        Cursor cursor = contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DATE + " DESC");
 
         if (cursor != null) {
-            cursor.close();
+            try {
+                List<SMSMessage> tempSmsList = new ArrayList<>();
+                Pattern bankSenderPattern = Pattern.compile("^[A-Z]{2}-[A-Z0-9]+$", Pattern.CASE_INSENSITIVE); // Regex to match bank-like sender IDs
+
+                while (cursor.moveToNext()) {
+                    String address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
+                    String body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
+                    long timestampMillis = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
+                    String dateTime = getDateTime(timestampMillis);
+
+                    // Check if the SMS sender matches the pattern of a bank sender ID
+                    if (bankSenderPattern.matcher(address).matches()) {
+                        List<SMSMessage> transactionDetailsList = null;
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            transactionDetailsList = DataExtraction.extractTransactionDetails(body, address, dateTime, timestampMillis);
+                        }
+                        if (transactionDetailsList != null && !transactionDetailsList.isEmpty()) {
+                            tempSmsList.addAll(transactionDetailsList);
+                        }
+                    }
+                }
+
+                smsList.addAll(tempSmsList);
+            } finally {
+                cursor.close(); // Ensure the cursor is closed in a finally block to prevent resource leaks
+            }
         }
 
+        // Update the UI once after all SMS messages have been processed to reduce adapter updates
         Collections.sort(smsList);
         ArrayAdapter<SMSMessage> adapter = (ArrayAdapter<SMSMessage>) listView.getAdapter();
         adapter.notifyDataSetChanged();
     }
 
-    private boolean isBankSender(String address) {
-        return "JM-BOIIND".equalsIgnoreCase(address) ||
-                "VM-BOIIND".equalsIgnoreCase(address) ||
-                "JD-BOIIND".equalsIgnoreCase(address) ||
-                "AD-HDFCBK".equalsIgnoreCase(address) ||
-                "JX-HDFCBK".equalsIgnoreCase(address);
-    }
+
 
     private String getDateTime(long milliSeconds) {
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
         return formatter.format(new Date(milliSeconds));
     }
-
-     private void saveDataToFirebase() {
+    private void saveDataToFirebase() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
@@ -158,31 +162,53 @@ public class MainActivity extends AppCompatActivity {
             userData.put("email", user.getEmail());  // Unencrypted email
             userData.put("profession", "your profession here");  // Unencrypted profession
 
-            // Now prepare the SMS data with proper encryption for each field
-            Map<String, Object> smsData = new HashMap<>();
+            // Prepare the SMS data with encryption
+            Map<String, Map<String, Object>> smsDataByMonth = new HashMap<>();
             for (SMSMessage sms : smsList) {
+                // Log the date-time value for debugging
+                Log.d("SMSDateTime", "Original SMS date-time: " + sms.getTime());
+
                 // Encrypt specific fields of the SMS data
-                //   String encryptedTimestamp = AESEncryption.encrypt(String.valueOf(sms.getTimestamp()));  // Encrypt the timestamp
-                String encryptedDate = AESEncryption.encrypt(sms.getTime());  // Encrypt the date
                 String encryptedAmount = AESEncryption.encrypt(sms.getAmount());  // Encrypt the transaction amount
                 String encryptedType = AESEncryption.encrypt(sms.getType());
 
                 // Create a map to store each SMS's data in a structured manner
                 Map<String, Object> singleSmsData = new HashMap<>();
                 singleSmsData.put("sender", sms.getSenderId());  // The sender's ID is NOT encrypted
-                singleSmsData.put("Type",encryptedType);
-                singleSmsData.put("date", encryptedDate);  // Encrypted date
+                singleSmsData.put("type", encryptedType);
+                singleSmsData.put("dateTime", sms.getTime());  // Original date and time
                 singleSmsData.put("amount", encryptedAmount);  // Encrypted transaction amount
 
-                // Generate a unique key for each message in the user's "messages" node
-                String key = databaseReference.child("user").child(userId).child("messages").push().getKey();
+                // Extract the month and year from the SMS date to create the key for grouping
+                String monthYearKey = extractMonthYear(sms.getTime());
+                Log.d("SMSDateTime", "Extracted Month-Year Key: " + monthYearKey);  // Log the extracted key
 
-                // Store the structured and encrypted SMS data using the generated key
-                smsData.put(key, singleSmsData);
+                // Ensure there's a section for the current month and year
+                Map<String, Object> monthData = smsDataByMonth.get(monthYearKey);
+                if (monthData == null) {
+                    monthData = new HashMap<>();
+                    smsDataByMonth.put(monthYearKey, monthData);
+                }
+
+                // Generate a unique key for each message based on the date and time (remove / and -)
+                String messageKey = generateMessageKey(sms.getTime());
+
+                // Extract the grouping key (3rd to 8th digits) from the messageKey
+                String groupingKey = messageKey.substring(2, 8); // Adjust indices if necessary
+
+                // Ensure there's a section for the current grouping key
+                Map<String, Object> groupData = (Map<String, Object>) monthData.get(groupingKey);
+                if (groupData == null) {
+                    groupData = new HashMap<>();
+                    monthData.put(groupingKey, groupData);
+                }
+
+                // Add the SMS data to the correct grouping node within the month-year section
+                groupData.put(messageKey, singleSmsData);
             }
 
-            // Save the user info and the SMS messages under the user's node
-            databaseReference.child("user").child(userId).child("messages").setValue(smsData)
+            // Save the grouped SMS data under the user's node
+            databaseReference.child("user").child(userId).child("messages").setValue(smsDataByMonth)
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
                             Toast.makeText(MainActivity.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
@@ -197,6 +223,39 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Extracts the month and year from a date-time string in the format "dd-MM-yyyy HH:mm:ss".
+     *
+     * @param dateString The date string from which to extract the month and year.
+     * @return A string in the format "MM-yyyy" representing the month and year.
+     */
+    private String extractMonthYear(String dateString) throws ParseException {
+        // Define the expected date format
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        SimpleDateFormat outputFormat = new SimpleDateFormat("MM-yyyy");
+
+        try {
+            // Parse the input date string into a Date object
+            Date date = inputFormat.parse(dateString);
+            // Format the Date object into the desired "MM-yyyy" format
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            // Handle parsing errors
+            System.err.println("Error parsing date: " + e.getMessage());
+            return "Month-Year";  // Fallback value if parsing fails
+        }
+    }
+
+    /**
+     * Generates a unique key for each message by removing '/' and '-' from the date-time string.
+     *
+     * @param dateTime The date-time string in the format "dd-MM-yyyy HH:mm:ss".
+     * @return A unique string key representing the message.
+     */
+    private String generateMessageKey(String dateTime) {
+        // Replace all '/' and '-' characters with empty strings
+        return dateTime.replaceAll("[/-]", "").replace(" ", "_"); // Replace space with underscore for better key format
+    }
 
     private void showLogoutConfirmation() {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
