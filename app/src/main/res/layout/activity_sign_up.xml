@@ -150,6 +150,14 @@
                     android:textColorHint="@color/black" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- activity_sign_up.xml -->
+            <com.google.android.gms.common.SignInButton
+                android:id="@+id/googleSignInBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp" />
+
             <Button
                 android:id="@+id/signupbtn"
                 android:layout_width="match_parent"
@@ -163,6 +171,7 @@
                 android:text="Sign Up"
 
                 />
+
         </LinearLayout>
 
         <TextView

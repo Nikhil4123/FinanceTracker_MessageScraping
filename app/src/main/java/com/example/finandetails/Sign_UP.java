@@ -1,7 +1,5 @@
 package com.example.finandetails;
 
-import static com.google.firebase.auth.AuthKt.auth;
-
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -9,17 +7,13 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.example.finandetails.databinding.ActivitySignUpBinding;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -35,62 +29,60 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
-import java.util.Objects;
 
 public class Sign_UP extends AppCompatActivity {
-    Button google_Sign_in_btn;
-ActivitySignUpBinding binding;
+    private static final int RC_SIGN_IN = 20;
+    private static final String TAG = "Sign_UP";
 
+    ActivitySignUpBinding binding;
     FirebaseAuth auth;
     FirebaseDatabase database;
-//    GoogleSignInOptions gos;
-//    GoogleSignInClient gsc;
-//    int  RC_SIGN_IN =20;
-    PhoneAuthProvider.OnVerificationStateChangedCallbacks mCallbacks;
-    String verificationId;
+    GoogleSignInClient googleSignInClient;
     ProgressDialog progressDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         binding = ActivitySignUpBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Initialize Firebase and Google Sign-In
         FirebaseApp.initializeApp(this);
-        auth =FirebaseAuth.getInstance();
-        database =FirebaseDatabase.getInstance();
+        auth = FirebaseAuth.getInstance();
+        database = FirebaseDatabase.getInstance();
 
-
-//        gos=new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-//                .requestIdToken(getString(R.string.default_web_client_id)).requestEmail().build();
-//        gsc= GoogleSignIn.getClient(Sign_UP.this,gos);
-//
-//        google_Sign_in_btn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                signIn();
-//            }
-//        });
-
-
+        GoogleSignInOptions googleSignInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+        googleSignInClient = GoogleSignIn.getClient(this, googleSignInOptions);
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Signing up...");
         progressDialog.setCancelable(false);
 
+        // Google Sign-In button click listener
+        binding.googleSignInBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                signInWithGoogle();
+            }
+        });
+
+        // Email/Password sign-up button click listener
         binding.signupbtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String name = binding.nameET.getText().toString();
-                String profession = binding.professionET.getText().toString();
-                String email = binding.emailET.getText().toString();
-                String password = binding.passwordET.getText().toString();
+                String name = binding.nameET.getText().toString().trim();
+                String profession = binding.professionET.getText().toString().trim();
+                String email = binding.emailET.getText().toString().trim();
+                String password = binding.passwordET.getText().toString().trim();
 
                 String buildNumber = Build.VERSION.INCREMENTAL;
                 String modelNumber = Build.MODEL;
@@ -112,47 +104,14 @@ ActivitySignUpBinding binding;
                 }
 
                 progressDialog.show();
-//                String email =binding.emailET.getText().toString(), password = binding.passwordET.getText().toString();
                 database.getReference().child("user").orderByChild("name").equalTo(name).addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.exists()) {
-                            // Name already exists, show toast
                             progressDialog.dismiss();
-                            AlertDialog.Builder builder = new AlertDialog.Builder(Sign_UP.this);
-                            builder.setMessage("This name is already in use. Please choose a different name.")
-                                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                                        public void onClick(DialogInterface dialog, int id) {
-                                            // You can add functionality here if needed
-                                        }
-                                    });
-                            AlertDialog alert = builder.create();
-                            alert.show();
+                            showAlertDialog("This name is already in use. Please choose a different name.");
                         } else {
-                            // Name is available, proceed with sign up
-                            auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                                @Override
-                                public void onComplete(@NonNull Task<AuthResult> task) {
-                                    if (task.isSuccessful()) {
-                                        User user = new User(name, profession, email, password , buildNumber, modelNumber, androidVersion);
-
-
-
-                                        String id = task.getResult().getUser().getUid();
-                                        database.getReference().child("user").child(id).setValue(user);
-                                        progressDialog.dismiss();
-                                        Toast.makeText(Sign_UP.this, "Sign up successful", Toast.LENGTH_SHORT).show();
-                                        Intent intent = new Intent(Sign_UP.this, MainActivity.class);
-                                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                        startActivity(intent);
-                                        finish();
-                                    } else {
-                                        // Sign up failed
-                                        progressDialog.dismiss();
-                                        Toast.makeText(Sign_UP.this, "Sign up failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
-                                    }
-                                }
-                            });
+                            createUserWithEmailAndPassword(name, profession, email, password, buildNumber, modelNumber, androidVersion);
                         }
                     }
 
@@ -168,60 +127,88 @@ ActivitySignUpBinding binding;
         binding.gotologin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent =  new Intent(Sign_UP.this, LogIn.class);
+                Intent intent = new Intent(Sign_UP.this, LogIn.class);
                 startActivity(intent);
             }
         });
-
-
     }
 
-//    private void signIn() {
-//        Intent signInIntent = gsc.getSignInIntent();
-//        startActivityForResult(signInIntent,RC_SIGN_IN);
-//    }
-//
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if(resultCode==RC_SIGN_IN){
-//            Task<GoogleSignInAccount> task =GoogleSignIn.getSignedInAccountFromIntent(data);
-//            try {
-//                GoogleSignInAccount account=task.getResult(ApiException.class);
-//                auth(account.getIdToken());
-//
-//
-//            }catch (Exception e){
-//                Toast.makeText(this, e.getMessage().toString(), Toast.LENGTH_SHORT).show();
-//
-//            }
-//        }
-//    }
+    private void createUserWithEmailAndPassword(String name, String profession, String email, String password, String buildNumber, String modelNumber, String androidVersion) {
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                progressDialog.dismiss();
+                if (task.isSuccessful()) {
+                    FirebaseUser user = auth.getCurrentUser();
+                    User newUser = new User(name, profession, email, password, buildNumber, modelNumber, androidVersion);
+                    String id = user.getUid();
+                    database.getReference().child("user").child(id).setValue(newUser);
+                    Toast.makeText(Sign_UP.this, "Sign up successful", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(Sign_UP.this, MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(Sign_UP.this, "Sign up failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
 
-//    private void auth(String idToken) {
-//        AuthCredential credential = GoogleAuthProvider.getCredential(idToken,null);
-//        auth.signInWithCredential(credential)
-//                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-//                    @Override
-//                    public void onComplete(@NonNull Task<AuthResult> task) {
-//                        if (task.isSuccessful()){
-//                            FirebaseUser user =auth.getCurrentUser();
-//                            HashMap<String, Object> map = new HashMap<>();
-//                            map.put("id",user.getUid());
-//                            map.put("name",user.getDisplayName());
-//                            map.put("profile",user.getPhotoUrl()).toString();
-//                            database.getReference().child("userss").child(user.getUid()).setValue(map);
-//
-//                            Intent intent=new Intent(Sign_UP.this, MainActivity.class);
-//
-//                            startActivity(intent);
-//                        }
-//                        else {
-//                            Toast.makeText(Sign_UP.this, "Something went wrong", Toast.LENGTH_SHORT).show();
-//                        }
-//                    }
-//                })
-//;
-//
-//    }
+    private void signInWithGoogle() {
+        Intent signInIntent = googleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                if (account != null) {
+                    firebaseAuthWithGoogle(account.getIdToken());
+                }
+            } catch (ApiException e) {
+                Log.e(TAG, "Google sign-in failed", e);
+                Toast.makeText(this, "Google Sign-In failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        auth.signInWithCredential(credential).addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()) {
+                    FirebaseUser user = auth.getCurrentUser();
+                    HashMap<String, Object> map = new HashMap<>();
+                    map.put("id", user.getUid());
+                    map.put("name", user.getDisplayName());
+                    map.put("profile", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : null);
+                    database.getReference().child("users").child(user.getUid()).setValue(map);
+
+                    Intent intent = new Intent(Sign_UP.this, MainActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(Sign_UP.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void showAlertDialog(String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(Sign_UP.this);
+        builder.setMessage(message)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.dismiss();
+                    }
+                });
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
 }

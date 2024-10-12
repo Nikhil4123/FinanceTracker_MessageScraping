@@ -44,15 +44,22 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // Use Firebase BoM to manage Firebase versions
     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.android.gms:play-services-auth:21.2.0")
-    implementation("com.github.MrNouri:DynamicSizes:1.0")
-    implementation("de.hdodenhof:circleimageview:3.1.0")
+
+    // Firebase libraries (no need to specify versions explicitly)
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-storage")
-    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
+
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Third-party libraries
+    implementation("com.github.MrNouri:DynamicSizes:1.0")
+    implementation("de.hdodenhof:circleimageview:3.1.0")
 }
+
 
 apply(plugin = "com.google.gms.google-services")
