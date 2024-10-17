@@ -1,6 +1,9 @@
 package com.example.finandetails;
 
+import static com.example.finandetails.R.*;
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
@@ -48,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseReference databaseReference;
     private FirebaseAuth firebaseAuth;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,19 +67,9 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<SMSMessage> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, smsList);
         listView.setAdapter(adapter);
 
-        saveButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveDataToFirebase();
-            }
-        });
+        saveButton.setOnClickListener(v -> saveDataToFirebase());
 
-        logout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showLogoutConfirmation();
-            }
-        });
+        logout.setOnClickListener(v -> showLogoutConfirmation());
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, READ_SMS_PERMISSION_CODE);
@@ -101,14 +95,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     private void readSms() {
         ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = null;
 
-        // Query all SMS messages in descending order of date
-        Cursor cursor = contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DATE + " DESC");
+        try {
+            cursor = contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DATE + " DESC");
 
-        if (cursor != null) {
-            try {
+            if (cursor != null) {
                 List<SMSMessage> tempSmsList = new ArrayList<>();
                 Pattern bankSenderPattern = Pattern.compile("^[A-Z]{2}-[A-Z0-9]+$", Pattern.CASE_INSENSITIVE); // Regex to match bank-like sender IDs
 
@@ -121,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
                     // Check if the SMS sender matches the pattern of a bank sender ID
                     if (bankSenderPattern.matcher(address).matches()) {
                         List<SMSMessage> transactionDetailsList = null;
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             transactionDetailsList = DataExtraction.extractTransactionDetails(body, address, dateTime, timestampMillis);
                         }
                         if (transactionDetailsList != null && !transactionDetailsList.isEmpty()) {
@@ -131,23 +126,27 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 smsList.addAll(tempSmsList);
-            } finally {
+                Collections.sort(smsList);
+                ArrayAdapter<SMSMessage> adapter = (ArrayAdapter<SMSMessage>) listView.getAdapter();
+                adapter.notifyDataSetChanged();
+            } else {
+                Log.e("MainActivity", "Cursor is null, unable to read SMS.");
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error reading SMS: " + e.getMessage());
+            Toast.makeText(this, "Error reading SMS: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            if (cursor != null) {
                 cursor.close(); // Ensure the cursor is closed in a finally block to prevent resource leaks
             }
         }
-
-        // Update the UI once after all SMS messages have been processed to reduce adapter updates
-        Collections.sort(smsList);
-        ArrayAdapter<SMSMessage> adapter = (ArrayAdapter<SMSMessage>) listView.getAdapter();
-        adapter.notifyDataSetChanged();
     }
-
-
 
     private String getDateTime(long milliSeconds) {
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
         return formatter.format(new Date(milliSeconds));
     }
+
     private void saveDataToFirebase() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) {
@@ -165,10 +164,8 @@ public class MainActivity extends AppCompatActivity {
             // Prepare the SMS data with encryption
             Map<String, Map<String, Object>> smsDataByMonth = new HashMap<>();
             for (SMSMessage sms : smsList) {
-                // Log the date-time value for debugging
                 Log.d("SMSDateTime", "Original SMS date-time: " + sms.getTime());
 
-                // Encrypt specific fields of the SMS data
                 String encryptedAmount = AESEncryption.encrypt(sms.getAmount());  // Encrypt the transaction amount
                 String encryptedType = AESEncryption.encrypt(sms.getType());
 
@@ -181,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Extract the month and year from the SMS date to create the key for grouping
                 String monthYearKey = extractMonthYear(sms.getTime());
-                Log.d("SMSDateTime", "Extracted Month-Year Key: " + monthYearKey);  // Log the extracted key
+                Log.d("SMSDateTime", "Extracted Month-Year Key: " + monthYearKey);
 
                 // Ensure there's a section for the current month and year
                 Map<String, Object> monthData = smsDataByMonth.get(monthYearKey);
@@ -223,59 +220,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Extracts the month and year from a date-time string in the format "dd-MM-yyyy HH:mm:ss".
-     *
-     * @param dateString The date string from which to extract the month and year.
-     * @return A string in the format "MM-yyyy" representing the month and year.
-     */
-    private String extractMonthYear(String dateString) throws ParseException {
-        // Define the expected date format
-        SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-        SimpleDateFormat outputFormat = new SimpleDateFormat("MM-yyyy");
+    private void showLogoutConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Logout")
+                .setMessage("Are you sure you want to logout?")
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                    FirebaseAuth.getInstance().signOut();
+                    startActivity(new Intent(MainActivity.this, LogIn.class));
+                    finish();
+                })
+                .setNegativeButton(android.R.string.no, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    private String extractMonthYear(String dateTime) {
+        // Assume dateTime is in "dd/MM/yyyy HH:mm:ss" format
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("MM-yyyy", Locale.getDefault());
 
         try {
-            // Parse the input date string into a Date object
-            Date date = inputFormat.parse(dateString);
-            // Format the Date object into the desired "MM-yyyy" format
+            Date date = inputFormat.parse(dateTime);
             return outputFormat.format(date);
         } catch (ParseException e) {
-            // Handle parsing errors
-            System.err.println("Error parsing date: " + e.getMessage());
-            return "Month-Year";  // Fallback value if parsing fails
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
         }
     }
 
-    /**
-     * Generates a unique key for each message by removing '/' and '-' from the date-time string.
-     *
-     * @param dateTime The date-time string in the format "dd-MM-yyyy HH:mm:ss".
-     * @return A unique string key representing the message.
-     */
     private String generateMessageKey(String dateTime) {
-        // Replace all '/' and '-' characters with empty strings
-        return dateTime.replaceAll("[/-]", "").replace(" ", "_"); // Replace space with underscore for better key format
-    }
-
-    private void showLogoutConfirmation() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setMessage("Are you sure you want to Log out?")
-                .setTitle("Log Out Confirmation")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        firebaseAuth.signOut();
-                        Intent intent = new Intent(MainActivity.this, LogIn.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
-                    }
-                })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.dismiss();
-                    }
-                });
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        // Assuming dateTime is in "dd/MM/yyyy HH:mm:ss" format
+        return dateTime.replaceAll("[/: ]", ""); // Remove slashes, colons, and spaces to generate a key
     }
 }

@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:allowBackup="true"
@@ -26,9 +26,11 @@
             android:exported="false" />
 
         <service
-            android:name=".YourService"
+            android:name="com.example.finandetails.YourService"
             android:foregroundServiceType="dataSync"
-            tools:ignore="ForegroundServicePermission" />
+            tools:ignore="ForegroundServicePermission"
+            android:exported="false" />
+
 
         <activity
             android:name=".LogIn"
