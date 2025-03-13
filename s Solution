@@ -1,0 +1,433 @@
+[33mcommit b14408f8eb5ed1d562ed5f0d80c9cf6abdc14039[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: Nikhil4123 <nikhilsarak612w@gmail.com>
+Date:   Thu Sep 19 16:07:47 2024 +0530
+
+    .
+
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..00bf0dc[m
+[1m--- /dev/null[m
+[1m+++ b/.gitignore[m
+[36m@@ -0,0 +1,97 @@[m
+[32m+[m[32m# Created by https://www.toptal.com/developers/gitignore/api/java,kotlin,android[m
+[32m+[m[32m# Edit at https://www.toptal.com/developers/gitignore?templates=java,kotlin,android[m
+[32m+[m
+[32m+[m[32m### Android ###[m
+[32m+[m[32m# Gradle files[m
+[32m+[m[32m.gradle/[m
+[32m+[m[32mbuild/[m
+[32m+[m
+[32m+[m[32m# Local configuration file (sdk path, etc)[m
+[32m+[m[32mlocal.properties[m
+[32m+[m
+[32m+[m[32m# Log/OS Files[m
+[32m+[m[32m*.log[m
+[32m+[m
+[32m+[m[32m# Android Studio generated files and folders[m
+[32m+[m[32mcaptures/[m
+[32m+[m[32m.externalNativeBuild/[m
+[32m+[m[32m.cxx/[m
+[32m+[m[32m*.apk[m
+[32m+[m[32moutput.json[m
+[32m+[m
+[32m+[m[32m# IntelliJ[m
+[32m+[m[32m*.iml[m
+[32m+[m[32m.idea/[m
+[32m+[m[32mmisc.xml[m
+[32m+[m[32mdeploymentTargetDropDown.xml[m
+[32m+[m[32mrender.experimental.xml[m
+[32m+[m
+[32m+[m[32m# Keystore files[m
+[32m+[m[32m*.jks[m
+[32m+[m[32m*.keystore[m
+[32m+[m
+[32m+[m[32m# Google Services (e.g. APIs or Firebase)[m
+[32m+[m[32mgoogle-services.json[m
+[32m+[m
+[32m+[m[32m# Android Profiling[m
+[32m+[m[32m*.hprof[m
+[32m+[m
+[32m+[m[32m### Android Patch ###[m
+[32m+[m[32mgen-external-apklibs[m
+[32m+[m
+[32m+[m[32m# Replacement of .externalNativeBuild directories introduced[m
+[32m+[m[32m# with Android Studio 3.5.[m
+[32m+[m
+[32m+[m[32m### Java ###[m
+[32m+[m[32m# Compiled class file[m
+[32m+[m[32m*.class[m
+[32m+[m
+[32m+[m[32m# Log file[m
+[32m+[m
+[32m+[m[32m# BlueJ files[m
+[32m+[m[32m*.ctxt[m
+[32m+[m
+[32m+[m[32m# Mobile Tools for Java (J2ME)[m
+[32m+[m[32m.mtj.tmp/[m
+[32m+[m
+[32m+[m[32m# Package Files #[m
+[32m+[m[32m*.jar[m
+[32m+[m[32m*.war[m
+[32m+[m[32m*.nar[m
+[32m+[m[32m*.ear[m
+[32m+[m[32m*.zip[m
+[32m+[m[32m*.tar.gz[m
+[32m+[m[32m*.rar[m
+[32m+[m
+[32m+[m[32m# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml[m
+[32m+[m[32mhs_err_pid*[m
+[32m+[m[32mreplay_pid*[m
+[32m+[m
+[32m+[m[32m### Kotlin ###[m
+[32m+[m[32m# Compiled class file[m
+[32m+[m
+[32m+[m[32m# Log file[m
+[32m+[m
+[32m+[m[32m# BlueJ files[m
+[32m+[m
+[32m+[m[32m# Mobile Tools for Java (J2ME)[m
+[32m+[m
+[32m+[m[32m# Package Files #[m
+[32m+[m
+[32m+[m[32m# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml[m
+[32m+[m
+[32m+[m[32m# End of https://www.toptal.com/developers/gitignore/api/java,kotlin,android*.iml[m
+[32m+[m[32m.gradle[m
+[32m+[m[32m/local.properties[m
+[32m+[m[32m/.idea/caches[m
+[32m+[m[32m/.idea/libraries[m
+[32m+[m[32m/.idea/modules.xml[m
+[32m+[m[32m/.idea/workspace.xml[m
+[32m+[m[32m/.idea/navEditor.xml[m
+[32m+[m[32m/.idea/assetWizardSettings.xml[m
+[32m+[m[32m.DS_Store[m
+[32m+[m[32m/build[m
+[32m+[m[32m/captures[m
+[32m+[m[32m.externalNativeBuild[m
+[32m+[m[32m.cxx[m
+[32m+[m[32mlocal.properties[m
+[1mdiff --git a/app/.gitignore b/app/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..42afabf[m
+[1m--- /dev/null[m
+[1m+++ b/app/.gitignore[m
+[36m@@ -0,0 +1 @@[m
+[32m+[m[32m/build[m
+\ No newline at end of file[m
+[1mdiff --git a/app/build.gradle.kts b/app/build.gradle.kts[m
+[1mnew file mode 100644[m
+[1mindex 0000000..f2a5d1b[m
+[1m--- /dev/null[m
+[1m+++ b/app/build.gradle.kts[m
+[36m@@ -0,0 +1,55 @@[m
+[32m+[m[32mplugins {[m
+[32m+[m[32m    alias(libs.plugins.android.application)  // Keep this line[m
+[32m+[m[32m    id("com.google.gms.google-services")[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mandroid {[m
+[32m+[m[32m    namespace = "com.example.finandetails"[m
+[32m+[m[32m    compileSdk = 34[m
+[32m+[m
+[32m+[m[32m    buildFeatures {[m
+[32m+[m[32m        viewBinding = true[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    defaultConfig {[m
+[32m+[m[32m        applicationId = "com.example.finandetails"[m
+[32m+[m[32m        minSdk = 24[m
+[32m+[m[32m        targetSdk = 34[m
+[32m+[m[32m        versionCode = 1[m
+[32m+[m[32m        versionName = "1.0"[m
+[32m+[m
+[32m+[m[32m        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    buildTypes {[m
+[32m+[m[32m        release {[m
+[32m+[m[32m            isMinifyEnabled = false[m
+[32m+[m[32m            proguardFiles([m
+[32m+[m[32m                getDefaultProguardFile("proguard-android-optimize.txt"),[m
+[32m+[m[32m                "proguard-rules.pro"[m
+[32m+[m[32m            )[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[32m    compileOptions {[m
+[32m+[m[32m        sourceCompatibility = JavaVersion.VERSION_1_8[m
+[32m+[m[32m        targetCompatibility = JavaVersion.VERSION_1_8[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mdependencies {[m
+[32m+[m[32m    implementation(libs.appcompat)[m
+[32m+[m[32m    implementation(libs.material)[m
+[32m+[m[32m    implementation(libs.activity)[m
+[32m+[m[32m    implementation(libs.constraintlayout)[m
+[32m+[m[32m    testImplementation(libs.junit)[m
+[32m+[m[32m    androidTestImplementation(libs.ext.junit)[m
+[32m+[m[32m    androidTestImplementation(libs.espresso.core)[m
+[32m+[m[32m    implementation("com.github.MrNouri:DynamicSizes:1.0")[m
+[32m+[m[32m    implementation("de.hdodenhof:circleimageview:3.1.0")[m
+[32m+[m[32m    implementation("com.google.firebase:firebase-auth")[m
+[32m+[m[32m    implementation("com.google.firebase:firebase-database")[m
+[32m+[m[32m    implementation("com.google.firebase:firebase-storage")[m
+[32m+[m[32m    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mapply(plugin = "com.google.gms.google-services")[m
+[1mdiff --git a/app/proguard-rules.pro b/app/proguard-rules.pro[m
+[1mnew file mode 100644[m
+[1mindex 0000000..481bb43[m
+[1m--- /dev/null[m
+[1m+++ b/app/proguard-rules.pro[m
+[36m@@ -0,0 +1,21 @@[m
+[32m+[m[32m# Add project specific ProGuard rules here.[m
+[32m+[m[32m# You can control the set of applied configuration files using the[m
+[32m+[m[32m# proguardFiles setting in build.gradle.[m
+[32m+[m[32m#[m
+[32m+[m[32m# For more details, see[m
+[32m+[m[32m#   http://developer.android.com/guide/developing/tools/proguard.html[m
+[32m+[m
+[32m+[m[32m# If your project uses WebView with JS, uncomment the following[m
+[32m+[m[32m# and specify the fully qualified class name to the JavaScript interface[m
+[32m+[m[32m# class:[m
+[32m+[m[32m#-keepclassmembers class fqcn.of.javascript.interface.for.webview {[m
+[32m+[m[32m#   public *;[m
+[32m+[m[32m#}[m
+[32m+[m
+[32m+[m[32m# Uncomment this to preserve the line number information for[m
+[32m+[m[32m# debugging stack traces.[m
+[32m+[m[32m#-keepattributes SourceFile,LineNumberTable[m
+[32m+[m
+[32m+[m[32m# If you keep the line number information, uncomment this to[m
+[32m+[m[32m# hide the original source file name.[m
+[32m+[m[32m#-renamesourcefileattribute SourceFile[m
+\ No newline at end of file[m
+[1mdiff --git a/app/src/androidTest/java/com/example/finandetails/ExampleInstrumentedTest.java b/app/src/androidTest/java/com/example/finandetails/ExampleInstrumentedTest.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..47a400c[m
+[1m--- /dev/null[m
+[1m+++ b/app/src/androidTest/java/com/example/finandetails/ExampleInstrumentedTest.java[m
+[36m@@ -0,0 +1,26 @@[m
+[32m+[m[32mpackage com.example.finandetails;[m
+[32m+[m
+[32m+[m[32mimport android.content.Context;[m
+[32m+[m
+[32m+[m[32mimport androidx.test.platform.app.InstrumentationRegistry;[m
+[32m+[m[32mimport androidx.test.ext.junit.runners.AndroidJUnit4;[m
+[32m+[m
+[32m+[m[32mimport org.junit.Test;[m
+[32m+[m[32mimport org.junit.runner.RunWith;[m
+[32m+[m
+[32m+[m[32mimport static org.junit.Assert.*;[m
+[32m+[m
+[32m+[m[32m/**[m
+[32m+[m[32m * Instrumented test, which will execute on an Android device.[m
+[32m+[m[32m *[m
+[32m+[m[32m * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>[m
+[32m+[m[32m */[m
+[32m+[m[32m@RunWith(AndroidJUnit4.class)[m
+[32m+[m[32mpublic class ExampleInstrumentedTest {[m
+[32m+[m[32m    @Test[m
+[32m+[m[32m    public void useAppContext() {[m
+[32m+[m[32m        // Context of the app under test.[m
+[32m+[m[32m        Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();[m
+[32m+[m[32m        assertEquals("com.example.finandetails", appContext.getPackageName());[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml[m
+[1mnew file mode 100644[m
+[1mindex 0000000..561fec9[m
+[1m--- /dev/null[m
+[1m+++ b/app/src/main/AndroidManifest.xml[m
+[36m@@ -0,0 +1,45 @@[m
+[32m+[m[32m<?xml version="1.0" encoding="utf-8"?>[m
+[32m+[m[32m<manifest xmlns:android="http://schemas.android.com/apk/res/android"[m
+[32m+[m[32m    xmlns:tools="http://schemas.android.com/tools">[m
+[32m+[m
+[32m+[m[32m    <uses-feature[m
+[32m+[m[32m        android:name="android.hardware.telephony"[m
+[32m+[m[32m        android:required="false" />[m
+[32m+[m
+[32m+[m[32m    <uses-permission android:name="android.permission.READ_SMS" />[m
+[32m+[m[32m    <uses-permission android:name="android.permission.RECEIVE_SMS" />[m
+[32m+[m[32m    <uses-permission android:name="android.permission.INTERNET" />[m
+[32m+[m
+[32m+[m[32m    <application[m
+[32m+[m[32m        android:allowBackup="true"[m
+[32m+[m[32m        android:dataExtractionRules="@xml/data_extraction_rules"[m
+[32m+[m[32m        android:fullBackupContent="@xml/backup_rules"[m
+[32m+[m[32m        android:icon="@mipmap/ic_launcher"[m
+[32m+[m[32m        android:label="@string/app_name"[m
+[32m+[m[32m        android:roundIcon="@mipmap/ic_launcher_round"[m
+[32m+[m[32m        android:supportsRtl="true"[m
+[32m+[m[32m        android:theme="@style/Theme.FinanDetails"[m
+[32m+[m[32m        tools:targetApi="31">[m
+[32m+[m[32m        <activity[m
+[32m+[m[32m            android:name=".LogIn"[m
+[32m+[m[32m            android:exported="false" />[m
+[32m+[m[32m        <activity[m
+[32m+[m[32m            android:name=".SplashScreen"[m
+[32m+[m[32m            android:exported="true" >[m
+[32m+[m[32m        <intent-filter>[m
+[32m+[m[32m            <action android:name="android.intent.action.MAIN" />[m
+[32m+[m
+[32m+[m[32m            <category android:name="android.intent.category.LAUNCHER" />[m
+[32m+[m[32m        </intent-filter>[m
+[32m+[m[32m        </activity>[m
+[32m+[m[32m        <activity[m
+[32m+[m[32m            android:name=".Sign_UP"[m
+[32m+[m[32m            android:exported="true">[m
+[32m+[m
+[32m+[m[32m        </activity>[m
+[32m+[m[32m        <activity[m
+[32m+[m[32m            android:name=".MainActivity"[m
+[32m+[m[32m            android:exported="true" />[m
+[32m+[m[32m    </application>[m
+[32m+[m
+[32m+[m[32m</manifest>[m
+\ No newline at end of file[m
+[1mdiff --git a/app/src/main/java/com/example/finandetails/AESEncryption.java b/app/src/main/java/com/example/finandetails/AESEncryption.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..15f2289[m
+[1m--- /dev/null[m
+[1m+++ b/app/src/main/java/com/example/finandetails/AESEncryption.java[m
+[36m@@ -0,0 +1,45 @@[m
+[32m+[m[32mpackage com.example.finandetails;[m
+[32m+[m
+[32m+[m[32mimport android.util.Base64;[m
+[32m+[m
+[32m+[m[32mimport java.nio.charset.StandardCharsets;[m
+[32m+[m[32mimport java.security.MessageDigest;[m
+[32m+[m[32mimport java.util.Arrays;[m
+[32m+[m[32mimport javax.crypto.Cipher;[m
+[32m+[m[32mimport javax.crypto.KeyGenerator;[m
+[32m+[m[32mimport javax.crypto.SecretKey;[m
+[32m+[m[32mimport javax.crypto.spec.SecretKeySpec;[m
+[32m+[m
+[32m+[m[32mpublic class AESEncryption {[m
+[32m+[m
+[32m+[m[32m    private static final String AES = "AES";[m
+[32m+[m[32m    private static final String MY_SECRET_KEY = "@7djsridher"; // Your custom key[m
+[32m+[m
+[32m+[m[32m    // Method to generate a secret key from the custom string key[m
+[32m+[m[32m    private static SecretKey generateKey() throws Exception {[m
+[32m+[m[32m        byte[] key = MY_SECRET_KEY.getBytes(StandardCharsets.UTF_8);[m
+[32m+[m[32m        MessageDigest sha = MessageDigest.getInstance("SHA-256");[m
+[32m+[m[32m        key = sha.digest(key);[m
+[32m+[m[32m        key = Arrays.copyOf(key, 16); // Use only first 128 bit (16 bytes)[m
+[32m+[m[32m        return new SecretKeySpec(key, AES);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Method to encrypt a plain text using AES[m
+[32m+[m[32m    public static String encrypt(String plainText) throws Exception {[m
+[32m+[m[32m        SecretKey secretKey = generateKey();[m
+[32m+[m[32m        Cipher cipher = Cipher.getInstance(AES);[m
+[32m+[m[32m        cipher.init(Cipher.ENCRYPT_MODE, secretKey);[m
+[32m+[m[32m        byte[] encryptedBytes = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));[m
+[32m+[m[32m        return Base64.encodeToString(encryptedBytes, Base64.DEFAULT);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Method to decrypt a cipher text using AES[m
+[32m+[m[32m    public static String decrypt(String encryptedText) throws Exception {[m
+[32m+[m[32m        SecretKey secretKey = generateKey();[m
+[32m+[m[32m        Cipher cipher = Cipher.getInstance(AES);[m
+[32m+[m[32m        cipher.init(Cipher.DECRYPT_MODE, secretKey);[m
+[32m+[m[32m        byte[] decodedBytes = Base64.decode(encryptedText, Base64.DEFAULT);[m
+[32m+[m[32m        byte[] decryptedBytes = cipher.doFinal(decodedBytes);[m
+[32m+[m[32m        return new String(decryptedBytes, StandardCharsets.UTF_8);[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[1mdiff --git a/app/src/main/java/com/example/finandetails/DataExtraction.java b/app/src/main/java/com/example/finandetails/DataExtraction.java[m
+[1mnew file mode 100644[m
+[1mindex 0000000..7d81e5f[m
+[1m--- /dev/null[m
+[1m+++ b/app/src/main/java/com/example/finandetails/DataExtraction.java[m
+[36m@@ -0,0 +1,126 @@[m
+[32m+[m[32mpackage com.example.finandetails;[m
+[32m+[m
+[32m+[m[32mimport java.text.ParseException;[m
+[32m+[m[32mimport java.text.SimpleDateFormat;[m
+[32m+[m[32mimport java.util.ArrayList;[m
+[32m+[m[32mimport java.util.Date;[m
+[32m+[m[32mimport java.util.Locale;[m
+[32m+[m[32mimport java.util.regex.Matcher;[m
+[32m+[m[32mimport java.util.regex.Pattern;[m
+[32m+[m
+[32m+[m[32mpublic class DataExtraction {[m
+[32m+[m
+[32m+[m[32m    public static ArrayList<SMSMessage> extractForADHDFCBK(String messageBody, String senderId, String dateTime, long timestampMillis) {[m
+[32m+[m[32m        ArrayList<SMSMessage> detailsList = new ArrayList<>();[m
+[32m+[m
+[32m+[m[32m        // Regex to extract transaction details for AD-HDFCBK[m
+[32m+[m[32m        String regex = "Amt\\sSent\\sRs\\.(\\d+(\\.\\d{1,2})?)\\s+From\\sHDFC\\sBank\\sA/C\\s\\*(\\d{4})\\s+To\\s([A-Za-z\\s]+)\\s+On\\s(\\d{2}-\\d{2})\\s+Ref\\s(\\d+)";[m
+[32m+[m[32m        Pattern pattern = Pattern.compile(regex);[m
+[32m+[m[32m        Matcher matcher = pattern.matcher(messageBody);[m
+[32m+[m
+[32m+[m[32m        // Extract the details if the pattern is matched[m
+[32m+[m[32m        if (matcher.find()) {[m
+[32m+[m[32m            String amount = matcher.group(1); // Extracted amount (e.g., "10.00")[m
+[32m+[m[32m            String account = matcher.group(3); // Extracted last 4 digits of account number (e.g., "1175")[m
+[32m+[m[32m            String recipient = matcher.group(4).trim(); // Extracted recipient name (e.g., "ANIL RAMASHISH BHAGAT")[m
+[32m+[m[32m            String transactionDate = matcher.group(5); // Extracted transaction date (e.g., "13-09")[m
+[32m+[m[32m            String reference = matcher.group(6); // Extracted reference number (e.g., "425764873414")[m
+[32m+[m
+[32m+[m[32m            // Format the date if necessary[m
+[32m+[m[32m            String formattedDate = convertDateFormat(transactionDate, "dd-MM", "dd/MM");[m
+[32m+[m
+[32m+[m[32m            // Add extracted details to SMSMessage list[m
+[32m+[m[32m            SMSMessage smsMessage = new SMSMessage(senderId, "Sent", amount, formattedDate, dateTime, timestampMillis);[m
+[32m+[m
+[32m+[m[32m            detailsList.add(smsMessage);[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        return detailsList.isEmpty() ? null : detailsList;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    public static ArrayList<SMSMessage> extractForJMBoiInd(String messageBody, String senderId, String dateTime, long timestampMillis) {[m
+[32m+[m[32m        ArrayList<SMSMessage> detailsList = new ArrayList<>();[m
+[32m+[m
+[32m+[m[32m        String regex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+Credited\\s+to\\syour\\sAc\\s+\\S+\\son\\s(\\d{2}-\\d{2}-\\d{2})";[m
+[32m+[m[32m        Pattern pattern = Pattern.compile(regex);[m
+[32m+[m[32m        Matcher matcher = pattern.matcher(messageBody);[m
+[32m+[m
+[32m+[m[32m        while (matcher.find()) {[m
+[32m+[m[32m            String amount = matcher.group(1); // Amount[m
+[32m+[m[32m            String transactionDate = matcher.group(2); // Date in dd-MM-yy format[m
+[32m+[m
+[32m+[m[32m            // Convert the date format to dd/MM/yyyy[m
+[32m+[m[32m            String formattedDate = convertDateFormat(transactionDate, "dd-MM-yy", "dd/MM/yyyy");[m
+[32m+[m
+[32m+[m[32m            detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis));[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        return detailsList.isEmpty() ? null : detailsList;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    public static ArrayList<SMSMessage> extractForVMBoiInd(String messageBody, String senderId, String dateTime, long timestampMillis) {[m
+[32m+[m[32m        ArrayList<SMSMessage> detailsList = new ArrayList<>();[m
+[32m+[m
+[32m+[m[32m        String debitedRegex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+debited.*?on\\s(\\d{2}[A-Za-z]{3}\\d{2})";[m
+[32m+[m[32m        String creditedRegex = "(?i)Rs\\.\\s?(\\d+(\\.\\d{1,2})?)\\s+credited.*?on\\s(\\d{2}[A-Za-z]{3}\\d{2})";[m
+[32m+[m
+[32m+[m[32m        Pattern debitedPattern = Pattern.compile(debitedRegex);[m
+[32m+[m[32m        Matcher debitedMatcher = debitedPattern.matcher(messageBody);[m
+[32m+[m
+[32m+[m[32m        while (debitedMatcher.find()) {[m
+[32m+[m[32m            String amount = debitedMatcher.group(1); // Amount[m
+[32m+[m[32m            String transactionDate = debitedMatcher.group(3); // Date in ddMMMyy format[m
+[32m+[m[32m            String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");[m
+[32m+[m[32m            detailsList.add(new SMSMessage(senderId, "Debited", amount, formattedDate, dateTime, timestampMillis));[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        Pattern creditedPattern = Pattern.compile(creditedRegex);[m
+[32m+[m[32m        Matcher creditedMatcher = creditedPattern.matcher(messageBody);[m
+[32m+[m
+[32m+[m[32m        while (creditedMatcher.find()) {[m
+[32m+[m[32m            String amount = creditedMatcher.group(1); // Amount[m
+[32m+[m[32m            String transactionDate = creditedMatcher.group(3); // Date in ddMMMyy format[m
+[32m+[m[32m            String formattedDate = convertDateFormat(transactionDate, "ddMMMyy", "dd/MM/yyyy");[m
+[32m+[m[32m            detailsList.add(new SMSMessage(senderId, "Credited", amount, formattedDate, dateTime, timestampMillis)

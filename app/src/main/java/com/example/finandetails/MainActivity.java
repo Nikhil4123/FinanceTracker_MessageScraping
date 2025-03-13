@@ -1,14 +1,19 @@
 package com.example.finandetails;
 
+import static com.example.finandetails.R.*;
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Telephony;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,28 +30,28 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
     private ArrayList<SMSMessage> smsList = new ArrayList<>();
     private ListView listView;
     private Button saveButton;
-    private  Button logout;
+    private Button logout;
     private static final int READ_SMS_PERMISSION_CODE = 1;
     private DatabaseReference databaseReference;
     private FirebaseAuth firebaseAuth;
-    FirebaseAuth auth;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,54 +60,23 @@ public class MainActivity extends AppCompatActivity {
         firebaseAuth = FirebaseAuth.getInstance();
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
-        auth = FirebaseAuth.getInstance();
         listView = findViewById(R.id.listView);
         saveButton = findViewById(R.id.save);
-        logout= findViewById(R.id.logOut);
+        logout = findViewById(R.id.logOut);
 
         ArrayAdapter<SMSMessage> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, smsList);
         listView.setAdapter(adapter);
-        saveButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveDataToFirebase();
-            }
-        });
 
-        logout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setMessage("Are you sure you want to  Log out?")
-                        .setTitle("Log Out Confirmation")
-                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                // User clicked Yes button
-                                auth.signOut();
+        saveButton.setOnClickListener(v -> saveDataToFirebase());
 
-                                Intent intent = new Intent(MainActivity.this, LogIn.class);
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                                startActivity(intent);
-                                finish();
-                            }
-                        })
-                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                // User cancelled the dialog
-                                dialog.dismiss(); // Dismiss the dialog if user clicks No
-                            }
-                        });
-                AlertDialog dialog = builder.create();
-                dialog.show();
-            }
-        });
+        logout.setOnClickListener(v -> showLogoutConfirmation());
 
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_SMS}, READ_SMS_PERMISSION_CODE);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_SMS}, READ_SMS_PERMISSION_CODE);
         } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(new Intent(this, YourService.class));
+            }
             readSms();
         }
     }
@@ -112,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == READ_SMS_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(new Intent(this, YourService.class));
+                }
                 readSms();
             } else {
                 Toast.makeText(this, "Permission denied to read SMS", Toast.LENGTH_SHORT).show();
@@ -121,55 +98,48 @@ public class MainActivity extends AppCompatActivity {
 
     private void readSms() {
         ContentResolver contentResolver = getContentResolver();
-        Cursor cursor = contentResolver.query(
-                Telephony.Sms.CONTENT_URI,
-                null,
-                null,
-                null,
-                null
-        );
+        Cursor cursor = null;
 
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                String address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
-                String body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
-                long timestampMillis = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
-                String dateTime = getDateTime(timestampMillis);
+        try {
+            cursor = contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DATE + " DESC");
 
-                // Filter and process messages from specific senders
-                ArrayList<SMSMessage> transactionDetailsList = null;
-                if ("JM-BOIIND".equalsIgnoreCase(address)) {
-                    transactionDetailsList = DataExtraction.extractForJMBoiInd(body, address, dateTime, timestampMillis);
-                } else if ("VM-BOIIND".equalsIgnoreCase(address)) {
-                    transactionDetailsList = DataExtraction.extractForVMBoiInd(body, address, dateTime, timestampMillis);
-                } else if ("JD-BOIIND".equalsIgnoreCase(address)) {
-                    transactionDetailsList = DataExtraction.extractForJDBoiInd(body, address, dateTime, timestampMillis);
-                }
-                else if ("AD-HDFCBK".equalsIgnoreCase(address)) {
-                    transactionDetailsList = DataExtraction.extractForADHDFCBK(body, address, dateTime, timestampMillis);
-                }
-                else if ("JX-HDFCBK".equalsIgnoreCase(address)) {
-                    transactionDetailsList = DataExtraction.extractForJDBoiInd(body, address, dateTime, timestampMillis);
+            if (cursor != null) {
+                List<SMSMessage> tempSmsList = new ArrayList<>();
+                Pattern bankSenderPattern = Pattern.compile("^[A-Z]{2}-[A-Z0-9]+$", Pattern.CASE_INSENSITIVE); // Regex to match bank-like sender IDs
+
+                while (cursor.moveToNext()) {
+                    String address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS));
+                    String body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY));
+                    long timestampMillis = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE));
+                    String dateTime = getDateTime(timestampMillis);
+
+                    // Check if the SMS sender matches the pattern of a bank sender ID
+                    if (bankSenderPattern.matcher(address).matches()) {
+                        List<SMSMessage> transactionDetailsList = null;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            transactionDetailsList = DataExtraction.extractTransactionDetails(body, address, dateTime, timestampMillis);
+                        }
+                        if (transactionDetailsList != null && !transactionDetailsList.isEmpty()) {
+                            tempSmsList.addAll(transactionDetailsList);
+                        }
+                    }
                 }
 
-
-                if (transactionDetailsList != null) {
-                    smsList.addAll(transactionDetailsList);
-                }
-
-            } while (cursor.moveToNext());
+                smsList.addAll(tempSmsList);
+                Collections.sort(smsList);
+                ArrayAdapter<SMSMessage> adapter = (ArrayAdapter<SMSMessage>) listView.getAdapter();
+                adapter.notifyDataSetChanged();
+            } else {
+                Log.e("MainActivity", "Cursor is null, unable to read SMS.");
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error reading SMS: " + e.getMessage());
+            Toast.makeText(this, "Error reading SMS: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } finally {
+            if (cursor != null) {
+                cursor.close(); // Ensure the cursor is closed in a finally block to prevent resource leaks
+            }
         }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-
-        // Sort messages by date and time
-        Collections.sort(smsList);
-
-        // Notify the adapter of data changes
-        ArrayAdapter<SMSMessage> adapter = (ArrayAdapter<SMSMessage>) listView.getAdapter();
-        adapter.notifyDataSetChanged();
     }
 
     private String getDateTime(long milliSeconds) {
@@ -177,42 +147,126 @@ public class MainActivity extends AppCompatActivity {
         return formatter.format(new Date(milliSeconds));
     }
 
-
+   
     private void saveDataToFirebase() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
             return;
         }
-
+    
         String userId = user.getUid();
-
         try {
-            // Prepare data to save
-            Map<String, Object> smsData = new HashMap<>();
+            // Set the email directly under the user node
+            databaseReference.child("email").setValue(user.getEmail());
+            
+            // Prepare the messages structure
+            Map<String, Object> messagesData = new HashMap<>();
+            
             for (SMSMessage sms : smsList) {
-                // Encrypt each message using AES
-                String encryptedMessage = AESEncryption.encrypt(sms.toString());
-                String key = databaseReference.child("user").child(userId).child("messages").push().getKey();
-                smsData.put(key, encryptedMessage);
+                // Extract the month and year in the format shown in the image (e.g., "012024" for January 2024)
+                String monthYearKey = formatMonthYear(sms.getTime());
+                
+                // Create message ID from the date time (format shown in image: 11012024162737)
+                String messageId = formatMessageId(sms.getTime());
+                
+                // Encrypt sensitive data
+                String encryptedAmount = AESEncryption.encrypt(sms.getAmount());
+                String encryptedType = AESEncryption.encrypt(sms.getType());
+                
+                // Ensure month-year node exists
+                Map<String, Object> monthYearData;
+                if (messagesData.containsKey(monthYearKey)) {
+                    monthYearData = (Map<String, Object>) messagesData.get(monthYearKey);
+                } else {
+                    monthYearData = new HashMap<>();
+                    messagesData.put(monthYearKey, monthYearData);
+                }
+                
+                // Create the message object structure
+                Map<String, Object> messageData = new HashMap<>();
+                messageData.put("amount", encryptedAmount);
+                messageData.put("dateTime", sms.getTime());
+                messageData.put("sender", sms.getSenderId());
+                messageData.put("type", encryptedType);
+                
+                // Add the message to the month-year node
+                monthYearData.put(messageId, messageData);
             }
-
-            // Save encrypted data to Firebase
-            databaseReference.child("user").child(userId).child("messages").setValue(smsData)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(MainActivity.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(MainActivity.this, "Failed to save data", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
+            
+            // Save the structured data to Firebase
+            databaseReference.child("messages").setValue(messagesData)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(MainActivity.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Failed to save data", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Encryption failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+    
+    // Format date as "MMYYYY" (e.g., "012024" for January 2024)
+    private String formatMonthYear(String dateTime) {
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("MMyyyy", Locale.getDefault());
+        
+        try {
+            Date date = inputFormat.parse(dateTime);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
+        }
+    }
+    
+    // Format dateTime as "ddMMyyyyHHmmss" (e.g., "11012024162737")
+    private String formatMessageId(String dateTime) {
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault());
+        
+        try {
+            Date date = inputFormat.parse(dateTime);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
+        }
+    }
+    private void showLogoutConfirmation() {
+        new AlertDialog.Builder(this)
+                .setTitle("Logout")
+                .setMessage("Are you sure you want to logout?")
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                    FirebaseAuth.getInstance().signOut();
+                    startActivity(new Intent(MainActivity.this, LogIn.class));
+                    finish();
+                })
+                .setNegativeButton(android.R.string.no, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
 
+    private String extractMonthYear(String dateTime) {
+        // Assume dateTime is in "dd/MM/yyyy HH:mm:ss" format
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("MM-yyyy", Locale.getDefault());
 
+        try {
+            Date date = inputFormat.parse(dateTime);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
+        }
+    }
 
+    private String generateMessageKey(String dateTime) {
+        // Assuming dateTime is in "dd/MM/yyyy HH:mm:ss" format
+        return dateTime.replaceAll("[/: ]", ""); // Remove slashes, colons, and spaces to generate a key
+    }
 }
