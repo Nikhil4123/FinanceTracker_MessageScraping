@@ -147,79 +147,96 @@ public class MainActivity extends AppCompatActivity {
         return formatter.format(new Date(milliSeconds));
     }
 
+   
     private void saveDataToFirebase() {
         FirebaseUser user = firebaseAuth.getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        String userId = user.getUid();  // Get the user's unique ID (UID)
+    
+        String userId = user.getUid();
         try {
-            // Store user's unencrypted information (like email and profession)
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("email", user.getEmail());  // Unencrypted email
-            userData.put("profession", "your profession here");  // Unencrypted profession
-
-            // Prepare the SMS data with encryption
-            Map<String, Map<String, Object>> smsDataByMonth = new HashMap<>();
+            // Set the email directly under the user node
+            databaseReference.child("email").setValue(user.getEmail());
+            
+            // Prepare the messages structure
+            Map<String, Object> messagesData = new HashMap<>();
+            
             for (SMSMessage sms : smsList) {
-                Log.d("SMSDateTime", "Original SMS date-time: " + sms.getTime());
-
-                String encryptedAmount = AESEncryption.encrypt(sms.getAmount());  // Encrypt the transaction amount
+                // Extract the month and year in the format shown in the image (e.g., "012024" for January 2024)
+                String monthYearKey = formatMonthYear(sms.getTime());
+                
+                // Create message ID from the date time (format shown in image: 11012024162737)
+                String messageId = formatMessageId(sms.getTime());
+                
+                // Encrypt sensitive data
+                String encryptedAmount = AESEncryption.encrypt(sms.getAmount());
                 String encryptedType = AESEncryption.encrypt(sms.getType());
-
-                // Create a map to store each SMS's data in a structured manner
-                Map<String, Object> singleSmsData = new HashMap<>();
-                singleSmsData.put("sender", sms.getSenderId());  // The sender's ID is NOT encrypted
-                singleSmsData.put("type", encryptedType);
-                singleSmsData.put("dateTime", sms.getTime());  // Original date and time
-                singleSmsData.put("amount", encryptedAmount);  // Encrypted transaction amount
-
-                // Extract the month and year from the SMS date to create the key for grouping
-                String monthYearKey = extractMonthYear(sms.getTime());
-                Log.d("SMSDateTime", "Extracted Month-Year Key: " + monthYearKey);
-
-                // Ensure there's a section for the current month and year
-                Map<String, Object> monthData = smsDataByMonth.get(monthYearKey);
-                if (monthData == null) {
-                    monthData = new HashMap<>();
-                    smsDataByMonth.put(monthYearKey, monthData);
+                
+                // Ensure month-year node exists
+                Map<String, Object> monthYearData;
+                if (messagesData.containsKey(monthYearKey)) {
+                    monthYearData = (Map<String, Object>) messagesData.get(monthYearKey);
+                } else {
+                    monthYearData = new HashMap<>();
+                    messagesData.put(monthYearKey, monthYearData);
                 }
-
-                // Generate a unique key for each message based on the date and time (remove / and -)
-                String messageKey = generateMessageKey(sms.getTime());
-
-                // Extract the grouping key (3rd to 8th digits) from the messageKey
-                String groupingKey = messageKey.substring(2, 8); // Adjust indices if necessary
-
-                // Ensure there's a section for the current grouping key
-                Map<String, Object> groupData = (Map<String, Object>) monthData.get(groupingKey);
-                if (groupData == null) {
-                    groupData = new HashMap<>();
-                    monthData.put(groupingKey, groupData);
-                }
-
-                // Add the SMS data to the correct grouping node within the month-year section
-                groupData.put(messageKey, singleSmsData);
+                
+                // Create the message object structure
+                Map<String, Object> messageData = new HashMap<>();
+                messageData.put("amount", encryptedAmount);
+                messageData.put("dateTime", sms.getTime());
+                messageData.put("sender", sms.getSenderId());
+                messageData.put("type", encryptedType);
+                
+                // Add the message to the month-year node
+                monthYearData.put(messageId, messageData);
             }
-
-            // Save the grouped SMS data under the user's node
-            databaseReference.child("user").child(userId).child("messages").setValue(smsDataByMonth)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(MainActivity.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(MainActivity.this, "Failed to save data", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
+            
+            // Save the structured data to Firebase
+            databaseReference.child("messages").setValue(messagesData)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(MainActivity.this, "Data saved successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Failed to save data", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "Encryption failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
-
+    
+    // Format date as "MMYYYY" (e.g., "012024" for January 2024)
+    private String formatMonthYear(String dateTime) {
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("MMyyyy", Locale.getDefault());
+        
+        try {
+            Date date = inputFormat.parse(dateTime);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
+        }
+    }
+    
+    // Format dateTime as "ddMMyyyyHHmmss" (e.g., "11012024162737")
+    private String formatMessageId(String dateTime) {
+        SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+        SimpleDateFormat outputFormat = new SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault());
+        
+        try {
+            Date date = inputFormat.parse(dateTime);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            Log.e("MainActivity", "Date parsing error: " + e.getMessage());
+            return "";
+        }
+    }
     private void showLogoutConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("Logout")
